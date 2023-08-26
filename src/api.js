@@ -16,5 +16,5 @@ export const fetchQuery = async (query, page) => {
     },
   });
 
-  return response.data.hits;
+  return response.data;
 };

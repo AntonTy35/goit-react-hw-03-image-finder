@@ -14,6 +14,7 @@ export class App extends Component {
     images: [],
     page: 1,
     isLoading: false,
+    isLoadMore: false,
   };
 
   async componentDidUpdate(prevProps, prevState) {
@@ -23,20 +24,29 @@ export class App extends Component {
       try {
         this.setState({ isLoading: true });
 
-        const response = await fetchQuery(this.queryWithoutId(query), page);
-        if (response.length === 0) {
+        const { hits, totalHits } = await fetchQuery(
+          this.queryWithoutId(query),
+          page
+        );
+        if (hits.length === 0) {
           return toast.error(
             'Sorry, there are no matching images for your search. Please try again'
           );
         }
 
-        const arrImages = response.map(
-          ({ id, webformatURL, largeImageURL }) => ({
+        const arrImages = hits.map(
+          ({ id, webformatURL, largeImageURL, tags }) => ({
             id,
             webformatURL,
             largeImageURL,
+            tags,
           })
         );
+
+        const totalPage = totalHits / 12;
+        totalPage > page
+          ? this.setState({ isLoadMore: true })
+          : this.setState({ isLoadMore: false });
 
         this.setState(prevState => ({
           images: [...prevState.images, ...arrImages],
@@ -48,17 +58,6 @@ export class App extends Component {
       }
     }
   }
-
-  handleSearchbarSubmit = event => {
-    event.preventDefault();
-
-    const newQuery = event.target.elements.query.value.toLowerCase().trim();
-    newQuery === ''
-      ? toast.error('Enter your query please')
-      : this.changeQuery(newQuery);
-
-    event.target.reset();
-  };
 
   changeQuery = newQuery => {
     if (newQuery !== this.state.query) {
@@ -79,13 +78,13 @@ export class App extends Component {
   };
 
   render() {
-    const { images, isLoading } = this.state;
+    const { images, isLoading, isLoadMore } = this.state;
     return (
       <>
-        <Searchbar changeQuery={this.handleSearchbarSubmit} />
+        <Searchbar onSubmit={this.changeQuery} />
         {images.length > 0 && <ImageGallery arrImages={images} />}
         {isLoading && <Loader />}
-        {images.length > 0 && !isLoading && (
+        {images.length > 0 && !isLoading && isLoadMore && (
           <LoadMoreBtn onClick={this.handleLoadMore} />
         )}
         <ToastContainer autoClose={3000} />
@@ -93,3 +92,14 @@ export class App extends Component {
     );
   }
 }
+
+// handleSearchbarSubmit = event => {
+//   event.preventDefault();
+
+//   const newQuery = event.target.elements.query.value.toLowerCase().trim();
+//   newQuery === ''
+//     ? toast.error('Enter your query please')
+//     : this.changeQuery(newQuery);
+
+//   event.target.reset();
+// };
